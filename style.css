@@ -822,3 +822,424 @@ video {
   color: var(--red-deep);
   border-color: var(--red);
 }
+
+/* ==================== СКЕЛЕТ И МЫШЦЫ ==================== */
+
+.bsSection {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 1720px;
+  margin: 0 auto;
+  padding: 52px 30px 6px;
+}
+
+.bsHeadTop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.bsTitle {
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(30px, 3.6vw, 46px);
+  line-height: 1.08;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink);
+}
+
+.bsOrn {
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.bsSubtitle {
+  margin-top: 12px;
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.bsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 30px;
+  align-items: stretch;
+  margin-top: 26px;
+}
+
+/* ---------- сцена ---------- */
+
+.bsStage {
+  min-height: 560px;
+}
+
+.bsCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  touch-action: none;
+  outline: none;
+}
+
+.loader.bsLoader {
+  transition: opacity 0.55s ease;
+}
+
+.loader.bsLoader.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- слои ---------- */
+
+.bsChips {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bsChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--ink-faint);
+  font-family: var(--font-acad);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bsChip.is-on {
+  color: var(--red-deep);
+  border-color: var(--red);
+}
+
+.bsDot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.bsDotBone {
+  background: #d6c8a2;
+}
+
+.bsDotMuscle {
+  background: #b54a3e;
+}
+
+.bsChip:not(.is-on) .bsDot {
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+/* ---------- подпись и подсказка ---------- */
+
+.bsHint {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 10;
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.bsCaption {
+  left: 16px;
+  bottom: 12px;
+  max-width: 46%;
+}
+
+/* ---------- всплывающая подпись у курсора ---------- */
+
+.bsTip {
+  position: absolute;
+  z-index: 20;
+  display: none;
+  max-width: 280px;
+  padding: 8px 11px 7px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  pointer-events: none;
+  box-shadow: 0 1px 0 rgba(47, 39, 25, 0.06);
+}
+
+.bsTip.is-vis {
+  display: block;
+}
+
+.bsTipRu {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.bsTipEn {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+/* ---------- правая колонка ---------- */
+
+.bsAside {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 2px 2px 24px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.bsAside::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bsAside::-webkit-scrollbar-thumb {
+  background: var(--line);
+}
+
+.bsAsideTitle {
+  font-family: var(--font-acad);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.bsTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.bsTitleRow::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+/* ---------- поиск ---------- */
+
+.bsSearch {
+  width: 100%;
+  padding: 7px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.bsSearch::placeholder {
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.bsSearch:focus {
+  border-bottom-color: var(--red);
+}
+
+.bsResults {
+  display: flex;
+  flex-direction: column;
+  max-height: 216px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.bsResult {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 2px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bsResultRu {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.bsResultEn {
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bsResult:hover .bsResultRu,
+.bsResult:focus-visible .bsResultRu {
+  color: var(--red-deep);
+}
+
+.bsEmpty {
+  padding: 7px 2px;
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* ---------- выбранный препарат ---------- */
+
+.bsSel {
+  display: none;
+  margin-top: 14px;
+  padding: 12px 2px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.bsSel.is-vis {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bsSelMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bsSelRu {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.bsSelEn {
+  margin-top: 3px;
+  font-family: var(--font-acad);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.bsSelSys {
+  margin-top: 7px;
+  font-family: var(--font-acad);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.bsSelX {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--ink-faint);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bsSelX:hover {
+  color: var(--red-deep);
+}
+
+/* ---------- источник данных ---------- */
+
+.bsAttrib {
+  margin-top: 16px;
+  font-family: var(--font-acad);
+  font-size: 10.5px;
+  line-height: 1.75;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+/* ---------- адаптивность ---------- */
+
+@media (max-width: 1180px) {
+  .bsSection {
+    padding: 44px 18px 4px;
+  }
+  .bsGrid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+  }
+  .bsStage {
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 940px) {
+  .bsSection {
+    padding: 38px 16px 0;
+  }
+  .bsGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .bsStage {
+    min-height: 62vh;
+    order: 1;
+  }
+  .bsAside {
+    order: 2;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+  .bsHint {
+    display: none;
+  }
+  .bsCaption {
+    max-width: 60%;
+  }
+}
