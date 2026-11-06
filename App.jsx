@@ -299,7 +299,7 @@ export default function App() {
         </section>
 
         {/* 03 · Девять органов */}
-        <section className="panel" ref={panelRefs[2]} aria-label="Девять органов">
+        <section className="panel" ref={panelRefs[2]} aria-label="Внутренние органы">
           <OrgansSection stageRef={organsStageRef} active={PANELS[active].id === 'organs'} />
         </section>
       </div>
