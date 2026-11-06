@@ -4,9 +4,9 @@ import OrgansSection from './OrgansSection.jsx';
 import { init, showSection, attachCanvas, dispose, prefetchModels } from './scene.js';
 
 const PANELS = [
-  { id: 'about', num: '01', label: 'О человеке' },
-  { id: 'skeleton', num: '02', label: 'Скелет и мышцы' },
-  { id: 'organs', num: '03', label: 'Девять органов' },
+  { id: 'about', num: '01', label: 'Человек' },
+  { id: 'skeleton', num: '02', label: 'Форма тела' },
+  { id: 'organs', num: '03', label: 'Содержание тела' },
 ];
 
 export default function App() {
