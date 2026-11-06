@@ -1,34 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Анатомия · Наглядная страница</title>
-  <meta
-    name="description"
-    content="Наглядная страница по анатомии человека"
-  />
-  <link
-    rel="icon"
-    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26' fill='%23a52a21'%3E%E2%98%85%3C/text%3E%3C/svg%3E"
-  />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap"
-    rel="stylesheet"
-  />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Знакомство с анатомией человека</title>
+  <meta name="description" content="Интерактивная трёхмерная анатомия человека: костно-мышечная система и внутренние органы.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <div id="root"></div>
-  <script src="app.js" defer></script>
-  <script src="ui-fixes.js" defer></script>
-  <script src="anatomy/vendor/three.min.js" defer></script>
-  <script src="anatomy/vendor/meshopt_decoder.js" defer></script>
-  <script src="anatomy/vendor/GLTFLoader.js" defer></script>
-  <script src="anatomy/vendor/OrbitControls.js" defer></script>
-  <script src="anatomy/anatomy-parts.js" defer></script>
-  <script src="anatomy/anatomy-viewer.js" defer></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
