@@ -12,35 +12,44 @@ export default function App() {
   const initialized = useRef(false);
   const organsPlayed = useRef(false);
 
-
-  // Красная лента-закладка: доля прочитанного материала.
   useEffect(() => {
-    let ticking = false;
+    if (!skelStageRef.current || initialized.current) return;
+    initialized.current = true;
+    init(skelStageRef.current);
+    showSection('skeleton', { immediate: true });
+    return () => dispose();
+  }, []);
 
-    const update = () => {
-      ticking = false;
-      const doc = document.documentElement;
-      const max = doc.scrollHeight - window.innerHeight;
-      const k = max > 0 ? Math.min(1, window.scrollY / max) : 0;
-      if (ribbonRef.current) {
-        ribbonRef.current.style.transform = `scaleX(${k})`;
-      }
-    };
+  useEffect(() => {
+    if (!skelSectionRef.current || !organsSectionRef.current) return;
 
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(update);
-      }
-    };
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = entry.target === organsSectionRef.current ? 'organs' : 'skeleton';
+          setActiveSection(prev => {
+            if (prev === id) return prev;
+            const container = id === 'organs' ? organsStageRef.current : skelStageRef.current;
+            if (container) attachCanvas(container);
+            if (id === 'organs') {
+              showSection('organs', { animate: !organsPlayed.current });
+              organsPlayed.current = true;
+            } else {
+              showSection('skeleton');
+            }
+            return id;
+          });
+        }
+      },
+      // Секции выше окна просмотра, поэтому порог в долях секции недостижим:
+      // активируем секцию, когда она пересекает центральную полосу окна.
+      { root: null, rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+    );
 
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
+    observer.observe(skelSectionRef.current);
+    observer.observe(organsSectionRef.current);
+    return () => observer.disconnect();
   }, []);
 
   // Прогрев кэша ключевых моделей в простое после первой отрисовки.
