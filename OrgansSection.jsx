@@ -303,7 +303,7 @@ export default function OrgansSection({ stageRef, active }) {
           <span className="sectionLabel">Внутренние органы</span>
           <span className="sectionRule" aria-hidden="true" />
         </div>
-        <h2 className="sectionTitle">Девять органов</h2>
+        <h2 className="sectionTitle">Внутренние органы</h2>
         <p className="sectionSubtitle">
           Интерактивные трёхмерные модели основных органов и систем человека
         </p>
