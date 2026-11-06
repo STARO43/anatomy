@@ -92,18 +92,28 @@ body::before {
   gap: 12px;
 }
 .edgeDot {
-  width: 8px;
-  height: 8px;
+  width: 18px;
+  height: 18px;
+  background: #c8102e;
+  border: none;
   padding: 0;
-  border-radius: 4px;
-  background: var(--line);
-  border: 0;
-  transition: background 0.25s ease, height 0.25s ease;
+  cursor: pointer;
+  clip-path: polygon(
+    50% 0%, 61% 35%, 98% 35%, 68% 57%,
+    79% 91%, 50% 70%, 21% 91%, 32% 57%,
+    2% 35%, 39% 35%
+  );
+  opacity: .55;
+  transition: transform .2s ease, opacity .2s ease;
 }
-.edgeDot:hover { background: var(--ink-faint); }
+
 .edgeDotActive {
-  height: 26px;
-  background: var(--red);
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+.edgeDot:hover {
+  opacity: .9;
 }
 @media (min-width: 1180px) and (hover: hover) {
   .edgeNav { display: flex; }
