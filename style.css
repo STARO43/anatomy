@@ -663,10 +663,6 @@ img, video { max-width: 100%; height: auto; }
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: min(52vh, 560px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
 }
 
 .organEntry {
