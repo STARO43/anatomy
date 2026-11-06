@@ -2,16 +2,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { loadModel } from './models.js';
+import { loadModel, prefetchModels } from './models.js';
 
 const COLORS = {
-  bg: 0xf6f0e2,
+  bg: 0xf3ecdb,
   bone: 0xe6d9ba,
   muscle: 0xb54a3e,
 };
 
+const HIGHLIGHT = {
+  bone: { emissive: 0x8a231b, intensity: 0.22 },
+  muscle: { emissive: 0x5c130d, intensity: 0.55 },
+};
+
 const MUSCLE_XRAY_OPACITY = 0.3;
 const TARGET_SKELETON_HEIGHT = 1.8;
+const HOVER_THROTTLE_MS = 28;
+const TAP_SLOP_PX2 = 36;
 
 let renderer = null;
 let scene = null;
@@ -21,8 +28,12 @@ let canvasEl = null;
 let containerEl = null;
 let resizeObserver = null;
 let observedContainer = null;
+let visibilityObserver = null;
 let rafId = null;
 let disposed = false;
+let stageVisible = true;
+const containerVisibility = new Map();
+let observedVisibilityTarget = null;
 let lastTime = performance.now();
 
 let activeSection = null;
@@ -33,8 +44,19 @@ let groups = null;
 let layers = null;
 let boneMaterial = null;
 let muscleMaterial = null;
+let hoverMaterials = null;
 
 const frameSubscribers = new Set();
+
+// --- Наведение: рейкаст по костям и мышцам ---
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let hoverMesh = null;
+let hoverPartId = null;
+let hoverSubscribers = new Set();
+let lastHoverTime = 0;
+let pointerDownAt = null;
+let touchPinTimer = null;
 
 const HOME = {
   skeleton: {
@@ -103,6 +125,15 @@ function createMaterials() {
     opacity: MUSCLE_XRAY_OPACITY,
     depthWrite: false,
   });
+
+  hoverMaterials = {
+    bone: boneMaterial.clone(),
+    muscle: muscleMaterial.clone(),
+  };
+  hoverMaterials.bone.emissive = new THREE.Color(HIGHLIGHT.bone.emissive);
+  hoverMaterials.bone.emissiveIntensity = HIGHLIGHT.bone.intensity;
+  hoverMaterials.muscle.emissive = new THREE.Color(HIGHLIGHT.muscle.emissive);
+  hoverMaterials.muscle.emissiveIntensity = HIGHLIGHT.muscle.intensity;
 }
 
 function setupLights() {
@@ -141,7 +172,7 @@ function disposeMaterial(material) {
   material.dispose();
 }
 
-function applyMaterial(root, material) {
+function applyMaterial(root, material, kind) {
   const replaced = new Set();
 
   root.traverse(obj => {
@@ -155,6 +186,16 @@ function applyMaterial(root, material) {
     obj.material = material;
     obj.castShadow = false;
     obj.receiveShadow = false;
+
+    // Имя части: у BodyParts3D узлы зовутся FJxxxx; GLTFLoader суффиксует
+    // дочерние меши ("_1", "M"), поэтому достаём числовой код регуляркой.
+    const own = (obj.name || '').match(/^FJ(\d+)/i);
+    const up = (obj.parent?.name || '').match(/^FJ(\d+)/i);
+    const code = own || up;
+    if (code) {
+      obj.userData.partId = 'FJ' + code[1];
+      obj.userData.partKind = kind;
+    }
   });
 
   replaced.forEach(disposeMaterial);
@@ -232,8 +273,8 @@ async function ensureSkeleton(onProgress) {
         }
       }),
     ]).then(([skeletal, muscular]) => {
-      applyMaterial(skeletal.scene, boneMaterial);
-      applyMaterial(muscular.scene, muscleMaterial);
+      applyMaterial(skeletal.scene, boneMaterial, 'bone');
+      applyMaterial(muscular.scene, muscleMaterial, 'muscle');
 
       layers.skeletal.add(skeletal.scene);
       layers.muscular.add(muscular.scene);
@@ -278,6 +319,35 @@ function observeContainer(container) {
   }
 }
 
+// Рендер ставится на паузу, когда сцена вне вьюпорта — экономит батарею.
+// Видимость отслеживается по каждому контейнеру отдельно: canvas
+// переезжает между секциями, и «последний entry» здесь не годится.
+function observeVisibility(container) {
+  if (!('IntersectionObserver' in window)) return;
+
+  if (!visibilityObserver) {
+    visibilityObserver = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        containerVisibility.set(entry.target, entry.isIntersecting);
+      }
+      syncStageVisibility();
+    }, { rootMargin: '120px 0px 120px 0px' });
+  }
+
+  if (observedVisibilityTarget && observedVisibilityTarget !== container) {
+    visibilityObserver.unobserve(observedVisibilityTarget);
+    containerVisibility.delete(observedVisibilityTarget);
+  }
+  observedVisibilityTarget = container;
+  visibilityObserver.observe(container);
+}
+
+function syncStageVisibility() {
+  const current = containerEl && containerVisibility.get(containerEl);
+  stageVisible = current !== false;
+  if (stageVisible) resumeLoop();
+}
+
 function resize() {
   if (!renderer || !camera || !containerEl) return;
 
@@ -296,11 +366,25 @@ function resize() {
   }
 }
 
+function resumeLoop() {
+  if (disposed || rafId || !renderer) return;
+  lastTime = performance.now();
+  rafId = requestAnimationFrame(renderLoop);
+}
+
 function renderLoop(now) {
   rafId = requestAnimationFrame(renderLoop);
 
-  if (disposed || document.hidden || !renderer || !scene || !camera) return;
+  if (disposed || !renderer || !scene || !camera) return;
   if (!canvasEl?.isConnected) return;
+
+  // Пауза вне вьюпорта и на скрытой вкладке: кадры не рисуем вовсе.
+  if (document.hidden || !stageVisible) {
+    lastTime = now;
+    cancelAnimationFrame(rafId);
+    rafId = null;
+    return;
+  }
 
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
@@ -314,6 +398,183 @@ function renderLoop(now) {
 
   renderer.render(scene, camera);
 }
+
+// ------------------- Наведение -------------------
+
+function canvasPoint(event) {
+  const rect = canvasEl.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+    rect,
+  };
+}
+
+function pickPart(event) {
+  if (!layers || !skeletonReady || activeSection !== 'skeleton') return null;
+
+  const point = canvasPoint(event);
+  if (!point) return null;
+
+  const targets = [];
+  if (layers.skeletal.visible) targets.push(layers.skeletal);
+  if (layers.muscular.visible) targets.push(layers.muscular);
+  if (targets.length === 0) return null;
+
+  pointerNDC.set(
+    (point.x / point.rect.width) * 2 - 1,
+    -(point.y / point.rect.height) * 2 + 1
+  );
+
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  const hits = raycaster.intersectObjects(targets, true);
+  for (const hit of hits) {
+    const obj = hit.object;
+    if (obj?.userData?.partId) {
+      return { partId: obj.userData.partId, kind: obj.userData.partKind, mesh: obj, point: clampPlatePoint(point) };
+    }
+  }
+  return null;
+}
+
+// Плашка не должна выезжать за рамку сцены.
+function clampPlatePoint(point) {
+  const w = point.rect.width;
+  const h = point.rect.height;
+  return {
+    ...point,
+    x: Math.min(Math.max(point.x, 10), Math.max(10, w - 268)),
+    y: Math.min(Math.max(point.y, 10), Math.max(10, h - 104)),
+  };
+}
+
+function setHoverMesh(mesh) {
+  if (hoverMesh === mesh) return;
+
+  if (hoverMesh) {
+    const kind = hoverMesh.userData.partKind;
+    const base = kind === 'muscle' ? muscleMaterial : boneMaterial;
+    hoverMesh.material = base;
+  }
+
+  hoverMesh = mesh;
+
+  if (hoverMesh) {
+    const kind = hoverMesh.userData.partKind;
+    hoverMesh.material = hoverMaterials[kind];
+  }
+}
+
+function emitHover(payload) {
+  for (const fn of hoverSubscribers) fn(payload);
+}
+
+function clearHover(silent = false) {
+  setHoverMesh(null);
+  hoverPartId = null;
+  canvasEl?.classList.remove('stage-pick');
+  if (!silent) emitHover({ type: 'leave' });
+}
+
+function handlePointerMove(event) {
+  if (activeSection !== 'skeleton' || !skeletonReady) return;
+
+  const now = performance.now();
+  if (now - lastHoverTime < HOVER_THROTTLE_MS) return;
+  lastHoverTime = now;
+
+  // Во время вращения модели подсказки не нужны.
+  if (pointerDownAt) return;
+
+  const picked = pickPart(event);
+  if (!picked) {
+    if (hoverPartId) clearHover();
+    return;
+  }
+
+  canvasEl.classList.add('stage-pick');
+
+  if (picked.partId !== hoverPartId) {
+    setHoverMesh(picked.mesh);
+    hoverPartId = picked.partId;
+    emitHover({
+      type: 'hover',
+      partId: picked.partId,
+      kind: picked.kind,
+      x: picked.point.x,
+      y: picked.point.y,
+    });
+  } else {
+    emitHover({
+      type: 'move',
+      partId: picked.partId,
+      kind: picked.kind,
+      x: picked.point.x,
+      y: picked.point.y,
+    });
+  }
+}
+
+function handlePointerLeave() {
+  if (pointerDownAt) return;
+  clearHover();
+}
+
+function handlePointerDown(event) {
+  pointerDownAt = { x: event.clientX, y: event.clientY };
+  if (touchPinTimer) {
+    clearTimeout(touchPinTimer);
+    touchPinTimer = null;
+    emitHover({ type: 'leave' });
+  }
+}
+
+function handlePointerUp(event) {
+  if (!pointerDownAt) return;
+
+  const dx = event.clientX - pointerDownAt.x;
+  const dy = event.clientY - pointerDownAt.y;
+  pointerDownAt = null;
+
+  // Быстрый тап (мобильные): закрепляем плашку у выбранной части.
+  if (dx * dx + dy * dy > TAP_SLOP_PX2) return;
+
+  const picked = pickPart(event);
+  if (picked) {
+    canvasEl.classList.add('stage-pick');
+    setHoverMesh(picked.mesh);
+    hoverPartId = picked.partId;
+    emitHover({
+      type: 'pin',
+      partId: picked.partId,
+      kind: picked.kind,
+      x: picked.point.x,
+      y: picked.point.y,
+    });
+  } else {
+    clearHover();
+  }
+}
+
+function attachHoverListeners() {
+  if (!canvasEl) return;
+  canvasEl.addEventListener('pointermove', handlePointerMove);
+  canvasEl.addEventListener('pointerleave', handlePointerLeave);
+  canvasEl.addEventListener('pointerdown', handlePointerDown);
+  canvasEl.addEventListener('pointerup', handlePointerUp);
+}
+
+function detachHoverListeners() {
+  if (!canvasEl) return;
+  canvasEl.removeEventListener('pointermove', handlePointerMove);
+  canvasEl.removeEventListener('pointerleave', handlePointerLeave);
+  canvasEl.removeEventListener('pointerdown', handlePointerDown);
+  canvasEl.removeEventListener('pointerup', handlePointerUp);
+}
+
+// -------------------------------------------------
 
 export function init(container) {
   if (renderer) {
@@ -353,6 +614,7 @@ export function init(container) {
   controls.enablePan = false;
   controls.minDistance = 0.1;
   controls.maxDistance = 30;
+  controls.zoomToCursor = true;
   controls.target.copy(HOME.skeleton.target);
 
   groups = {
@@ -381,6 +643,8 @@ export function init(container) {
   setupEnvironment();
 
   attachCanvas(container);
+  attachHoverListeners();
+  observeVisibility(container);
 
   lastTime = performance.now();
   rafId = requestAnimationFrame(renderLoop);
@@ -400,6 +664,8 @@ export function attachCanvas(container) {
   }
 
   observeContainer(container);
+  observeVisibility(container);
+  syncStageVisibility();
   resize();
 }
 
@@ -408,6 +674,7 @@ export async function showSection(id, options = {}) {
 
   activeSection = id;
   setAutoRotate(false);
+  if (id !== 'skeleton') clearHover(true);
 
   if (id === 'skeleton') {
     await ensureSkeleton(options.onProgress);
@@ -445,6 +712,13 @@ export function setMuscleOpacity(opacity) {
   muscleMaterial.transparent = opacity < 1;
   muscleMaterial.depthWrite = opacity >= 0.9;
   muscleMaterial.needsUpdate = true;
+
+  if (hoverMaterials?.muscle) {
+    hoverMaterials.muscle.opacity = opacity;
+    hoverMaterials.muscle.transparent = opacity < 1;
+    hoverMaterials.muscle.depthWrite = opacity >= 0.9;
+    hoverMaterials.muscle.needsUpdate = true;
+  }
 }
 
 export function setAutoRotate(on) {
@@ -461,6 +735,16 @@ export function subscribeFrame(fn) {
   return () => frameSubscribers.delete(fn);
 }
 
+export function subscribeHover(fn) {
+  hoverSubscribers.add(fn);
+  return () => hoverSubscribers.delete(fn);
+}
+
+export function hidePartPlate() {
+  clearHover(true);
+  emitHover({ type: 'leave' });
+}
+
 export function getRenderer() { return renderer; }
 export function getScene() { return scene; }
 export function getCamera() { return camera; }
@@ -471,16 +755,31 @@ export function getSkeletonGroup() { return groups?.skeleton || null; }
 export function getSkeletonLayer(layer) { return layers?.[layer] || null; }
 export function getActiveSection() { return activeSection; }
 
+export { prefetchModels };
+
 export function dispose() {
   if (disposed) return;
   disposed = true;
 
   cancelAnimationFrame(rafId);
+  rafId = null;
   frameSubscribers.clear();
+  hoverSubscribers.clear();
+  detachHoverListeners();
+  clearHover(true);
+
+  if (touchPinTimer) {
+    clearTimeout(touchPinTimer);
+    touchPinTimer = null;
+  }
 
   resizeObserver?.disconnect();
   resizeObserver = null;
   observedContainer = null;
+  visibilityObserver?.disconnect();
+  visibilityObserver = null;
+  observedVisibilityTarget = null;
+  containerVisibility.clear();
   window.removeEventListener('resize', resize);
 
   controls?.dispose();
@@ -506,6 +805,10 @@ export function dispose() {
   materials.forEach(m => m.dispose());
   textures.forEach(t => t.dispose());
 
+  hoverMaterials?.bone?.dispose();
+  hoverMaterials?.muscle?.dispose();
+  hoverMaterials = null;
+
   scene?.environment?.dispose?.();
   renderer?.dispose();
   renderer?.forceContextLoss?.();
@@ -522,7 +825,10 @@ export function dispose() {
   layers = null;
   boneMaterial = null;
   muscleMaterial = null;
+  hoverMesh = null;
+  hoverPartId = null;
   skeletonReady = false;
   skeletonLoading = null;
   activeSection = null;
+  stageVisible = true;
 }

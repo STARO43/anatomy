@@ -1,11 +1,25 @@
-import { useState, useCallback } from 'react';
-import { setMuscleOpacity, setAutoRotate, resetView, setLayerVisible } from './scene.js';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { setMuscleOpacity, setAutoRotate, resetView, setLayerVisible, subscribeHover, hidePartPlate } from './scene.js';
+import PART_NAMES from './anatomy-names.js';
+
+// Плашка закрепляется на 3,2 с после тапа (мобильные), затем плавно уходит.
+const PIN_MS = 3200;
 
 export default function SkeletonSection({ stageRef, active }) {
   const [xray, setXray] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [skeletalOn, setSkeletalOn] = useState(true);
   const [muscularOn, setMuscularOn] = useState(true);
+  const [plate, setPlate] = useState(null);
+
+  const pinTimer = useRef(null);
+
+  const clearPinTimer = useCallback(() => {
+    if (pinTimer.current) {
+      clearTimeout(pinTimer.current);
+      pinTimer.current = null;
+    }
+  }, []);
 
   const handleXray = useCallback(() => {
     setXray(prev => {
@@ -42,6 +56,55 @@ export default function SkeletonSection({ stageRef, active }) {
       return next;
     });
   }, []);
+
+  // Подписка на наведение и тап по частям тела: сцена отдаёт FJ-код части
+  // и точку в координатах сцены, здесь превращаем их в выпадающую плашку.
+  useEffect(() => {
+    const unsubscribe = subscribeHover(event => {
+      if (event.type === 'leave') {
+        // Закреплённую (после тапа) плашку не трогаем — уйдёт по таймеру.
+        setPlate(prev => (prev && prev.pinned ? prev : null));
+        return;
+      }
+
+      const names = PART_NAMES[event.partId];
+      if (!names) {
+        setPlate(null);
+        return;
+      }
+
+      const nextPlate = {
+        partId: event.partId,
+        ru: names[0],
+        latin: names[1],
+        kind: event.kind,
+        x: event.x,
+        y: event.y,
+        pinned: event.type === 'pin',
+      };
+
+      if (event.type === 'pin') {
+        clearPinTimer();
+        pinTimer.current = setTimeout(() => {
+          pinTimer.current = null;
+          hidePartPlate();
+          setPlate(null);
+        }, PIN_MS);
+      }
+
+      setPlate(nextPlate);
+    });
+
+    return () => {
+      unsubscribe();
+      clearPinTimer();
+    };
+  }, [clearPinTimer]);
+
+  // Смена видимости слоёв прячет плашку: выбранная часть может уйти со сцены.
+  useEffect(() => {
+    setPlate(null);
+  }, [skeletalOn, muscularOn]);
 
   return (
     <section className="skelSection">
@@ -107,6 +170,18 @@ export default function SkeletonSection({ stageRef, active }) {
             ⌂
           </button>
         </div>
+
+        {plate && (
+          <div
+            key={`${plate.pinned ? 'pin' : 'hover'}-${plate.partId}`}
+            className={`partPlate ${plate.pinned ? 'partPlatePinned' : ''} partPlate-${plate.kind || 'bone'}`}
+            style={{ left: plate.x, top: plate.y }}
+            aria-hidden="true"
+          >
+            <span className="partPlateName">{plate.ru}</span>
+            <span className="partPlateLatin">{plate.latin}</span>
+          </div>
+        )}
       </div>
 
       <div className="skelInfo">

@@ -6,18 +6,22 @@ const cache = new Map();
 const loader = new GLTFLoader();
 loader.setMeshoptDecoder(MeshoptDecoder);
 
+// База путей: по умолчанию модели лежат рядом со сборкой;
+// можно переопределить переменной окружения VITE_MODELS_BASE.
+const MODELS_BASE = import.meta.env.VITE_MODELS_BASE || './';
+
 const MODEL_PATHS = {
-  skeleton: './skeletal.glb',
-  muscular: './muscular.glb',
-  heart: './heart.glb',
-  brain: './brain.glb',
-  lungs: './lungs.glb',
-  liver: './liver.glb',
-  kidneys: './kidneys.glb',
-  eyeball: './eyeball.glb',
-  intestine: './intestine.glb',
-  pancreas: './pancreas.glb',
-  skin: './skin.glb',
+  skeleton: `${MODELS_BASE}skeletal.glb`,
+  muscular: `${MODELS_BASE}muscular.glb`,
+  heart: `${MODELS_BASE}heart.glb`,
+  brain: `${MODELS_BASE}brain.glb`,
+  lungs: `${MODELS_BASE}lungs.glb`,
+  liver: `${MODELS_BASE}liver.glb`,
+  kidneys: `${MODELS_BASE}kidneys.glb`,
+  eyeball: `${MODELS_BASE}eyeball.glb`,
+  intestine: `${MODELS_BASE}intestine.glb`,
+  pancreas: `${MODELS_BASE}pancreas.glb`,
+  skin: `${MODELS_BASE}skin.glb`,
 };
 
 export async function loadModel(id, onProgress) {
@@ -31,6 +35,26 @@ export async function loadModel(id, onProgress) {
 
 export function getModel(id) {
   return cache.get(id) || null;
+}
+
+// Прогрев HTTP-кэша двумя ключевыми моделями в простое:
+// когда читатель дойдёт до скелета, модели загрузятся мгновенно.
+export function prefetchModels() {
+  if (cache.size > 0) return;
+
+  const conn = navigator.connection;
+  if (conn && (conn.saveData || /^2g$/i.test(conn.effectiveType || ''))) return;
+
+  const warm = path => {
+    try {
+      fetch(path, { priority: 'low', mode: 'cors' }).catch(() => {});
+    } catch {
+      /* prefetch — необязательная оптимизация */
+    }
+  };
+
+  warm(MODEL_PATHS.skeleton);
+  warm(MODEL_PATHS.muscular);
 }
 
 export function disposeModel(id) {

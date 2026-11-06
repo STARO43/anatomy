@@ -114,6 +114,12 @@ export default function OrgansSection({ stageRef, active }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // Пока рисунок рассматривают в лайтбоксе, страница не прокручивается.
+  useEffect(() => {
+    document.body.classList.toggle('has-lightbox', Boolean(lightbox));
+    return () => document.body.classList.remove('has-lightbox');
+  }, [lightbox]);
+
   useEffect(() => {
     if (!active) return;
 

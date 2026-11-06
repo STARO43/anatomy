@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import SkeletonSection from './SkeletonSection.jsx';
 import OrgansSection from './OrgansSection.jsx';
-import { init, showSection, attachCanvas, dispose } from './scene.js';
+import { init, showSection, attachCanvas, dispose, prefetchModels } from './scene.js';
 
 export default function App() {
   const [activeSection, setActiveSection] = useState('skeleton');
@@ -9,6 +9,7 @@ export default function App() {
   const organsStageRef = useRef(null);
   const skelSectionRef = useRef(null);
   const organsSectionRef = useRef(null);
+  const ribbonRef = useRef(null);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -46,8 +47,80 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
 
+  // Красная лента-закладка: доля прочитанного материала.
+  useEffect(() => {
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      const k = max > 0 ? Math.min(1, window.scrollY / max) : 0;
+      if (ribbonRef.current) {
+        ribbonRef.current.style.transform = `scaleX(${k})`;
+      }
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
+
+  // Прогрев кэша ключевых моделей в простое после первой отрисовки.
+  useEffect(() => {
+    const warm = () => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => prefetchModels(), { timeout: 3500 });
+      } else {
+        setTimeout(prefetchModels, 1800);
+      }
+    };
+
+    if (document.readyState === 'complete') warm();
+    else {
+      window.addEventListener('load', warm, { once: true });
+      return () => window.removeEventListener('load', warm);
+    }
+  }, []);
+
+  const scrollToSection = useCallback(targetRef => {
+    targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   return (
     <div className="root">
+      <div className="progressRibbon" aria-hidden="true">
+        <span className="progressRibbonFill" ref={ribbonRef} />
+      </div>
+
+      <nav className="edgeNav" aria-label="Разделы страницы">
+        <button
+          type="button"
+          className={`edgeDot ${activeSection === 'skeleton' ? 'edgeDotActive' : ''}`}
+          aria-label="Скелет и мышцы"
+          aria-current={activeSection === 'skeleton' ? 'true' : undefined}
+          onClick={() => scrollToSection(skelSectionRef)}
+        />
+        <button
+          type="button"
+          className={`edgeDot ${activeSection === 'organs' ? 'edgeDotActive' : ''}`}
+          aria-label="Девять органов"
+          aria-current={activeSection === 'organs' ? 'true' : undefined}
+          onClick={() => scrollToSection(organsSectionRef)}
+        />
+      </nav>
+
       <header className="header">
         <div className="headerTop">
           <span className="topRule" aria-hidden="true" />
