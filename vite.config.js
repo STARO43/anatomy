@@ -6,4 +6,15 @@ export default defineConfig({
   // Относительные пути к assets: сборка работает и в корне домена,
   // и в подпапке вида /имя-репозитория/.
   base: './',
+  build: {
+    // Кэшируемый сплит вендора: three и react меняются реже кода сайта.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
 });

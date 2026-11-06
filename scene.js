@@ -5,9 +5,9 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { loadModel, prefetchModels } from './models.js';
 
 const COLORS = {
-  bg: 0xf3ecdb,
-  bone: 0xe6d9ba,
-  muscle: 0xb54a3e,
+  bg: 0xffffff,
+  bone: 0xe8e2d3,
+  muscle: 0xa04552,
 };
 
 const HIGHLIGHT = {

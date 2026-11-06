@@ -34,12 +34,12 @@ function makeSpotTexture(hex) {
 
   ctx.beginPath();
   ctx.arc(c, c, 37, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(47,39,25,0.22)';
+  ctx.fillStyle = 'rgba(38,41,51,0.22)';
   ctx.fill();
 
   ctx.beginPath();
   ctx.arc(c, c, 36, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(246,240,226,0.97)';
+  ctx.fillStyle = 'rgba(255,255,255,0.97)';
   ctx.fill();
 
   ctx.beginPath();
@@ -296,7 +296,7 @@ export default function OrgansSection({ stageRef, active }) {
   }, [active, organ]);
 
   return (
-    <section className="organsSection">
+    <section className="organsSection sectionScroll">
       <div className="sectionHead">
         <div className="sectionRuleRow">
           <span className="sectionRule" aria-hidden="true" />
