@@ -351,8 +351,8 @@ export function init(container) {
   controls.rotateSpeed = 0.75;
   controls.autoRotateSpeed = 0.7;
   controls.enablePan = false;
-  controls.minDistance = 3.2;
-  controls.maxDistance = 18;
+  controls.minDistance = 0.1;
+  controls.maxDistance = 30;
   controls.target.copy(HOME.skeleton.target);
 
   groups = {
