@@ -9,43 +9,9 @@ export default function App() {
   const organsStageRef = useRef(null);
   const skelSectionRef = useRef(null);
   const organsSectionRef = useRef(null);
-  const ribbonRef = useRef(null);
   const initialized = useRef(false);
+  const organsPlayed = useRef(false);
 
-  useEffect(() => {
-    if (!skelStageRef.current || initialized.current) return;
-    initialized.current = true;
-    init(skelStageRef.current);
-    showSection('skeleton', { immediate: true });
-    return () => dispose();
-  }, []);
-
-  useEffect(() => {
-    if (!skelSectionRef.current || !organsSectionRef.current) return;
-
-    const observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const id = entry.target === organsSectionRef.current ? 'organs' : 'skeleton';
-          setActiveSection(prev => {
-            if (prev === id) return prev;
-            const container = id === 'organs' ? organsStageRef.current : skelStageRef.current;
-            if (container) attachCanvas(container);
-            showSection(id);
-            return id;
-          });
-        }
-      },
-      // Секции выше окна просмотра, поэтому порог в долях секции недостижим:
-      // активируем секцию, когда она пересекает центральную полосу окна.
-      { root: null, rootMargin: '-45% 0px -45% 0px', threshold: 0 }
-    );
-
-    observer.observe(skelSectionRef.current);
-    observer.observe(organsSectionRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   // Красная лента-закладка: доля прочитанного материала.
   useEffect(() => {
@@ -100,10 +66,6 @@ export default function App() {
 
   return (
     <div className="root">
-      <div className="progressRibbon" aria-hidden="true">
-        <span className="progressRibbonFill" ref={ribbonRef} />
-      </div>
-
       <nav className="edgeNav" aria-label="Разделы страницы">
         <button
           type="button"
