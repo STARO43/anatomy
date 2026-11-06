@@ -118,7 +118,8 @@ export default function SkeletonSection({ stageRef, active }) {
         <p className="sectionSubtitle">Костная система и мышечная система человека в трёхмерной модели</p>
       </div>
 
-      <div className="stageFrame skelStage" ref={stageRef}>
+         <div className="stageWrap skelStageWrap">
+        <div className="stageFrame skelStage" ref={stageRef}>
         <div className="layerChips" role="group" aria-label="Слои модели">
           <button
             type="button"
@@ -182,6 +183,8 @@ export default function SkeletonSection({ stageRef, active }) {
             <span className="partPlateLatin">{plate.latin}</span>
           </div>
         )}
+        </div>
+        <p className="stageCaptionBelow">Скелет и мышцы человека · трёхмерная модель</p>
       </div>
 
       <div className="skelInfo">
