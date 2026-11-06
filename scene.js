@@ -355,7 +355,10 @@ function resize() {
   const h = containerEl.clientHeight;
   if (!w || !h) return;
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // Динамический pixelRatio: на больших вьюпортах снижаем, чтобы держать 60 fps.
+  const dpr = window.devicePixelRatio || 1;
+  const cap = w * h > 1300000 ? 1.5 : 2;
+  renderer.setPixelRatio(Math.min(dpr, cap));
   renderer.setSize(w, h, false);
 
   camera.aspect = w / h;
@@ -610,10 +613,11 @@ export function init(container) {
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.rotateSpeed = 0.75;
+  controls.zoomSpeed = 0.85;
   controls.autoRotateSpeed = 0.7;
   controls.enablePan = false;
-  controls.minDistance = 0.1;
-  controls.maxDistance = 30;
+  controls.minDistance = 0.5;
+  controls.maxDistance = 12;
   controls.zoomToCursor = true;
   controls.target.copy(HOME.skeleton.target);
 
@@ -728,6 +732,26 @@ export function setAutoRotate(on) {
 export function resetView() {
   const home = HOME[activeSection] || HOME.skeleton;
   tweenCamera(home.pos, home.target);
+}
+
+// Пресеты фокуса камеры: голова, туловище, рука, ноги.
+// Модель нормализована: стоит на y=0, рост 1.8, центр по X/Z в нуле.
+const FOCUS_PRESETS = {
+  head: { target: new THREE.Vector3(0, 1.62, 0), dist: 1.15, dir: new THREE.Vector3(0.18, 0.1, 1) },
+  torso: { target: new THREE.Vector3(0, 1.18, 0), dist: 1.45, dir: new THREE.Vector3(0.22, 0.08, 1) },
+  arm: { target: new THREE.Vector3(0.42, 1.28, 0), dist: 0.95, dir: new THREE.Vector3(1, 0.12, 0.5) },
+  leg: { target: new THREE.Vector3(0, 0.45, 0), dist: 1.5, dir: new THREE.Vector3(0.2, 0.05, 1) },
+};
+
+export function focusPart(name) {
+  if (!camera || !controls || !skeletonReady) return;
+
+  const preset = FOCUS_PRESETS[name];
+  if (!preset) return;
+
+  setAutoRotate(false);
+  const pos = preset.target.clone().add(preset.dir.clone().normalize().multiplyScalar(preset.dist));
+  tweenCamera(pos, preset.target, 650);
 }
 
 export function subscribeFrame(fn) {

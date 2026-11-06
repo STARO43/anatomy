@@ -17,6 +17,7 @@ export default function App() {
   const organsStageRef = useRef(null);
   const initialized = useRef(false);
   const organsPlayed = useRef(false);
+  const deckAnim = useRef(null);
 
   // Единая 3D-сцена: canvas переезжает между панелями.
   useEffect(() => {
@@ -94,12 +95,54 @@ export default function App() {
     }
   }, []);
 
+  const cancelDeckAnim = useCallback(() => {
+    if (deckAnim.current) {
+      cancelAnimationFrame(deckAnim.current);
+      deckAnim.current = null;
+    }
+  }, []);
+
+  // Переключение панели той же анимацией, что и свайп: плавный твин
+  // scrollLeft с easeInOutCubic. Прерывается любым касанием/колесом.
   const goTo = useCallback(index => {
     const deck = deckRef.current;
     const panel = panelRefs[index]?.current;
     if (!deck || !panel) return;
-    deck.scrollTo({ left: panel.offsetLeft, behavior: 'smooth' });
-  }, []);
+
+    const from = deck.scrollLeft;
+    const to = panel.offsetLeft;
+    if (Math.abs(to - from) < 1) return;
+
+    cancelDeckAnim();
+
+    const duration = 650;
+    const t0 = performance.now();
+    const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    const step = now => {
+      const k = Math.min(1, (now - t0) / duration);
+      deck.scrollLeft = from + (to - from) * ease(k);
+      deckAnim.current = k < 1 ? requestAnimationFrame(step) : null;
+    };
+
+    deckAnim.current = requestAnimationFrame(step);
+  }, [cancelDeckAnim]);
+
+  // Ручное управление прерывает программную анимацию.
+  useEffect(() => {
+    const deck = deckRef.current;
+    if (!deck) return undefined;
+
+    const stop = () => cancelDeckAnim();
+    deck.addEventListener('wheel', stop, { passive: true });
+    deck.addEventListener('touchstart', stop, { passive: true });
+    deck.addEventListener('pointerdown', stop, { passive: true });
+    return () => {
+      deck.removeEventListener('wheel', stop);
+      deck.removeEventListener('touchstart', stop);
+      deck.removeEventListener('pointerdown', stop);
+    };
+  }, [cancelDeckAnim]);
 
   // Колесо мыши: вертикальная прокрутка уходит внутрь панели,
   // а на её краях — двигает deck по горизонтали.
@@ -141,15 +184,13 @@ export default function App() {
       if (event.key === 'ArrowRight') {
         setActive(prev => {
           const next = Math.min(prev + 1, PANELS.length - 1);
-          const panel = panelRefs[next]?.current;
-          if (panel) deckRef.current?.scrollTo({ left: panel.offsetLeft, behavior: 'smooth' });
+          goTo(next);
           return next;
         });
       } else if (event.key === 'ArrowLeft') {
         setActive(prev => {
           const next = Math.max(prev - 1, 0);
-          const panel = panelRefs[next]?.current;
-          if (panel) deckRef.current?.scrollTo({ left: panel.offsetLeft, behavior: 'smooth' });
+          goTo(next);
           return next;
         });
       }
@@ -158,14 +199,14 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [goTo]);
 
   return (
     <div className="deckRoot">
       <header className="topBar">
         <span className="brand">
           <span className="brandMark" aria-hidden="true" />
-          Анатомия человека
+          Грамотиньо. Анатомия
         </span>
         <nav className="deckNav" aria-label="Разделы страницы">
           {PANELS.map((panel, index) => (

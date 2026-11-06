@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { setMuscleOpacity, setAutoRotate, resetView, setLayerVisible, subscribeHover, hidePartPlate } from './scene.js';
+import { setMuscleOpacity, setAutoRotate, resetView, setLayerVisible, subscribeHover, hidePartPlate, focusPart } from './scene.js';
 import PART_NAMES from './anatomy-names.js';
 
 // Плашка закрепляется на 3,2 с после тапа (мобильные), затем плавно уходит.
@@ -39,6 +39,10 @@ export default function SkeletonSection({ stageRef, active }) {
 
   const handleHome = useCallback(() => {
     resetView();
+  }, []);
+
+  const handleFocus = useCallback(name => {
+    focusPart(name);
   }, []);
 
   const handleToggleSkeletal = useCallback(() => {
@@ -118,76 +122,86 @@ export default function SkeletonSection({ stageRef, active }) {
         <p className="sectionSubtitle">Костная система и мышечная система человека в трёхмерной модели</p>
       </div>
 
-         <div className="stageWrap skelStageWrap">
-        <div className="stageFrame skelStage" ref={stageRef}>
-        <div className="layerChips" role="group" aria-label="Слои модели">
-          <button
-            type="button"
-            className={`layerChip ${skeletalOn ? 'is-on' : ''}`}
-            onClick={handleToggleSkeletal}
-            aria-pressed={skeletalOn}
-          >
-            <span className="layerDot layerDotBone" />
-            Скелет
-          </button>
-          <button
-            type="button"
-            className={`layerChip ${muscularOn ? 'is-on' : ''}`}
-            onClick={handleToggleMuscular}
-            aria-pressed={muscularOn}
-          >
-            <span className="layerDot layerDotMuscle" />
-            Мышцы
-          </button>
-        </div>
-        <div className="stageControls">
-          <button
-            type="button"
-            className={`ctlBtn ${xray ? 'ctlBtnActive' : ''}`}
-            onClick={handleXray}
-            title="Рентген: мышцы полупрозрачные"
-            aria-label="Рентген"
-            aria-pressed={xray}
-          >
-            ◎
-          </button>
-          <button
-            type="button"
-            className={`ctlBtn ${spinning ? 'ctlBtnActive' : ''}`}
-            onClick={handleSpin}
-            title="Медленное вращение"
-            aria-label="Вращение"
-            aria-pressed={spinning}
-          >
-            ⟳
-          </button>
-          <button
-            type="button"
-            className="ctlBtn"
-            onClick={handleHome}
-            title="Сбросить вид"
-            aria-label="Сбросить вид"
-          >
-            ⌂
-          </button>
-        </div>
+      <div className="skelLayout">
+        <div className="skelStageCol">
+          <div className="stageWrap skelStageWrap">
+            <div className="stageFrame skelStage" ref={stageRef}>
+              <div className="layerChips" role="group" aria-label="Слои модели">
+                <button
+                  type="button"
+                  className={`layerChip ${skeletalOn ? 'is-on' : ''}`}
+                  onClick={handleToggleSkeletal}
+                  aria-pressed={skeletalOn}
+                >
+                  <span className="layerDot layerDotBone" />
+                  Скелет
+                </button>
+                <button
+                  type="button"
+                  className={`layerChip ${muscularOn ? 'is-on' : ''}`}
+                  onClick={handleToggleMuscular}
+                  aria-pressed={muscularOn}
+                >
+                  <span className="layerDot layerDotMuscle" />
+                  Мышцы
+                </button>
+              </div>
+              <div className="stageControls">
+                <button
+                  type="button"
+                  className={`ctlBtn ${xray ? 'ctlBtnActive' : ''}`}
+                  onClick={handleXray}
+                  title="Рентген: мышцы полупрозрачные"
+                  aria-label="Рентген"
+                  aria-pressed={xray}
+                >
+                  ◎
+                </button>
+                <button
+                  type="button"
+                  className={`ctlBtn ${spinning ? 'ctlBtnActive' : ''}`}
+                  onClick={handleSpin}
+                  title="Медленное вращение"
+                  aria-label="Вращение"
+                  aria-pressed={spinning}
+                >
+                  ⟳
+                </button>
+                <button
+                  type="button"
+                  className="ctlBtn"
+                  onClick={handleHome}
+                  title="Сбросить вид"
+                  aria-label="Сбросить вид"
+                >
+                  ⌂
+                </button>
+              </div>
 
-        {plate && (
-          <div
-            key={`${plate.pinned ? 'pin' : 'hover'}-${plate.partId}`}
-            className={`partPlate ${plate.pinned ? 'partPlatePinned' : ''} partPlate-${plate.kind || 'bone'}`}
-            style={{ left: plate.x, top: plate.y }}
-            aria-hidden="true"
-          >
-            <span className="partPlateName">{plate.ru}</span>
-            <span className="partPlateLatin">{plate.latin}</span>
+              <div className="focusGroup" role="group" aria-label="Фокус камеры">
+                <button type="button" className="focusBtn" onClick={() => handleFocus('head')}>Голова</button>
+                <button type="button" className="focusBtn" onClick={() => handleFocus('torso')}>Туловище</button>
+                <button type="button" className="focusBtn" onClick={() => handleFocus('arm')}>Рука</button>
+                <button type="button" className="focusBtn" onClick={() => handleFocus('leg')}>Ноги</button>
+              </div>
+
+              {plate && (
+                <div
+                  key={`${plate.pinned ? 'pin' : 'hover'}-${plate.partId}`}
+                  className={`partPlate ${plate.pinned ? 'partPlatePinned' : ''} partPlate-${plate.kind || 'bone'}`}
+                  style={{ left: plate.x, top: plate.y }}
+                  aria-hidden="true"
+                >
+                  <span className="partPlateName">{plate.ru}</span>
+                  <span className="partPlateLatin">{plate.latin}</span>
+                </div>
+              )}
+            </div>
+            <p className="stageCaptionBelow">Скелет и мышцы человека · трёхмерная модель</p>
           </div>
-        )}
         </div>
-        <p className="stageCaptionBelow">Скелет и мышцы человека · трёхмерная модель</p>
-      </div>
 
-      <div className="skelInfo">
+        <aside className="skelInfo">
         <h3 className="skelInfoTitle">Костная и мышечная системы</h3>
         <p className="skelInfoDesc">
           Модель представляет костную систему и основные скелетные мышцы человека.
@@ -222,6 +236,7 @@ export default function SkeletonSection({ stageRef, active }) {
           Модель: BodyParts3D, © The Database Center for Life Science (DBCLS), лицензия CC BY-SA 2.1 Japan.
           Русские названия приведены по международной анатомической терминологии; в скобках — латинский термин атласа.
         </p>
+      </aside>
       </div>
     </section>
   );
