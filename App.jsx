@@ -298,7 +298,7 @@ export default function App() {
           <SkeletonSection stageRef={skelStageRef} active={PANELS[active].id === 'skeleton'} />
         </section>
 
-        {/* 03 · Девять органов */}
+        {/* 03 · Внутренние органы */}
         <section className="panel" ref={panelRefs[2]} aria-label="Внутренние органы">
           <OrgansSection stageRef={organsStageRef} active={PANELS[active].id === 'organs'} />
         </section>
