@@ -77,6 +77,14 @@ export default function App() {
         >
           BodyParts3D · DBCLS · CC BY-SA 2.1 JP
         </a>
+        <a
+          className="footerLink footerCredit"
+          href="https://gramotinho.kick.sh/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          @ГРАМОТИНЬО
+        </a>
       </footer>
     </div>
   );
