@@ -115,11 +115,11 @@ export default function SkeletonSection({ stageRef, active }) {
       <div className="sectionHead">
         <div className="sectionRuleRow">
           <span className="sectionRule" aria-hidden="true" />
-          <span className="sectionLabel">Опорно-двигательный аппарат</span>
+          <span className="sectionLabel">Модель опорно-двигательной системы</span>
           <span className="sectionRule" aria-hidden="true" />
         </div>
         <h2 className="sectionTitle">Скелет и мышцы</h2>
-        <p className="sectionSubtitle">Костная система и мышечная система человека в трёхмерной модели</p>
+        <p className="sectionSubtitle">Скелет и мышцы человека</p>
       </div>
 
       <div className="skelLayout">
