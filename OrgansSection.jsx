@@ -300,7 +300,7 @@ export default function OrgansSection({ stageRef, active }) {
       <div className="sectionHead">
         <div className="sectionRuleRow">
           <span className="sectionRule" aria-hidden="true" />
-          <span className="sectionLabel">Внутренние органы</span>
+          <span className="sectionLabel">Модели органов</span>
           <span className="sectionRule" aria-hidden="true" />
         </div>
         <h2 className="sectionTitle">Внутренние органы</h2>
